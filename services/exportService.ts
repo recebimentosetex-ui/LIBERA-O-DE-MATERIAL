@@ -1,29 +1,30 @@
-
-import { Release } from '../types';
+import { Release, FiberStockItem } from '../types';
 
 declare const XLSX: any;
 
-export const exportToExcel = (releases: Release[], fileName: string): void => {
+export const exportReleasesToExcel = (releases: Release[], fileName: string): void => {
   const worksheetData = releases.map(release => ({
-    'MATERIAL': release.material,
-    'OPERADOR': release.operador,
-    'RUA': release.rua,
-    'LOCAL DE ENTREGA': release.localDeEntrega,
-    'DATA': release.data,
-    'STATUS': release.status,
-    'SM': release.sm,
+    'MATERIAL': release.material, 'OPERADOR': release.operador, 'RUA': release.rua,
+    'LOCAL DE ENTREGA': release.localDeEntrega, 'DATA': release.data, 'STATUS': release.status, 'SM': release.sm,
   }));
-
   const worksheet = XLSX.utils.json_to_sheet(worksheetData);
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Liberações');
+  worksheet['!cols'] = [{ wch: 30 }, { wch: 20 }, { wch: 15 }, { wch: 20 }, { wch: 15 }, { wch: 30 }, { wch: 15 }];
+  XLSX.writeFile(workbook, `${fileName}.xlsx`);
+};
 
-  // Adjust column widths
-  const cols = [
-    { wch: 30 }, { wch: 20 }, { wch: 15 }, { wch: 20 },
-    { wch: 15 }, { wch: 30 }, { wch: 15 },
+export const exportFiberStockToExcel = (stock: FiberStockItem[], fileName: string): void => {
+  const worksheetData = stock.map(item => ({
+    'MATERIAL': item.material, 'LOTE': item.lote, 'QTD': item.qtd, 'PRATELEIRA': item.prateleira,
+    'RUA': item.rua, 'SALA': item.sala, 'STATUS': item.status, 'SM': item.sm,
+  }));
+  const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Estoque de Fibras');
+  worksheet['!cols'] = [
+      { wch: 30 }, { wch: 20 }, { wch: 10 }, { wch: 15 }, 
+      { wch: 15 }, { wch: 15 }, { wch: 20 }, { wch: 15 }
   ];
-  worksheet['!cols'] = cols;
-
   XLSX.writeFile(workbook, `${fileName}.xlsx`);
 };
