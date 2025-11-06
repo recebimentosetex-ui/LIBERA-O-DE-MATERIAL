@@ -1,12 +1,12 @@
+// Fix: Declare google as a global variable to resolve TypeScript errors.
+declare const google: any;
+
 import React, { useState, useEffect, useRef } from 'react';
 import { FiberStockItem, FiberStatus } from '../types';
 import { exportFiberStockToExcel } from '../services/exportService';
 import { FiberStockForm } from './FiberStockForm';
-import { PlusIcon, EditIcon, DeleteIcon, ExportIcon, ImportIcon } from './icons';
+import { PlusIcon, EditIcon, DeleteIcon, ExportIcon, ImportIcon, SearchIcon } from './icons';
 import { LoadingSpinner, ProcessingOverlay } from './common/Feedback';
-
-// Fix: Declare google object for TypeScript to recognize it in the global scope.
-declare const google: any;
 
 declare const XLSX: any;
 
@@ -20,6 +20,7 @@ const FiberStatusBadge: React.FC<{ status: FiberStatus }> = ({ status }) => {
 
 export const FiberStockPage: React.FC = () => {
     const [stock, setStock] = useState<FiberStockItem[]>([]);
+    const [searchQuery, setSearchQuery] = useState('');
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [processingText, setProcessingText] = useState('');
@@ -132,6 +133,12 @@ export const FiberStockPage: React.FC = () => {
     const handleCancelForm = () => { setView('list'); setEditingItem(null); };
     const handleExport = () => exportFiberStockToExcel(stock, 'relatorio_estoque_fibras');
     
+    const filteredStock = stock.filter(item =>
+        Object.values(item).some(value =>
+            String(value).toLowerCase().includes(searchQuery.toLowerCase())
+        )
+    );
+
     if (isLoading) return <div className="p-8"><LoadingSpinner text="Carregando estoque..." /></div>;
     if (view === 'form') return <FiberStockForm onSubmit={handleFormSubmit} onCancel={handleCancelForm} initialData={editingItem} onDelete={handleFormDelete} />;
 
@@ -139,26 +146,40 @@ export const FiberStockPage: React.FC = () => {
       <div className="container mx-auto p-4 sm:p-6 lg:p-8">
         {isSubmitting && <ProcessingOverlay text={processingText} />}
         <input type="file" ref={fileInputRef} onChange={handleFileImport} className="hidden" accept=".xlsx, .xls, .csv" />
-        <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
-          <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">ESTOQUE DE FIBRAS</h1>
-              <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Gerencie o estoque de fibras.</p>
-          </div>
-          <div className="flex space-x-2 mt-4 sm:mt-0">
-              <button onClick={handleImportClick} className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"><ImportIcon className="mr-2 h-5 w-5" />Importar</button>
-              <button onClick={handleExport} disabled={stock.length === 0} className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ExportIcon className="mr-2 h-5 w-5" />Exportar</button>
-              <button onClick={handleAddClick} className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"><PlusIcon className="mr-2 h-5 w-5" />Adicionar</button>
-          </div>
+        <header className="mb-8">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white">ESTOQUE DE FIBRAS</h1>
+                    <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Gerencie o estoque de fibras.</p>
+                </div>
+                <div className="flex space-x-2 mt-4 sm:mt-0 flex-shrink-0">
+                    <button onClick={handleImportClick} className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"><ImportIcon className="mr-2 h-5 w-5" />Importar</button>
+                    <button onClick={handleExport} disabled={stock.length === 0} className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"><ExportIcon className="mr-2 h-5 w-5" />Exportar</button>
+                    <button onClick={handleAddClick} className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"><PlusIcon className="mr-2 h-5 w-5" />Adicionar</button>
+                </div>
+            </div>
+            <div className="mt-4 relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <SearchIcon className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                    type="text"
+                    placeholder="Pesquisar por material, lote, prateleira, etc..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md leading-5 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:placeholder-gray-400 dark:focus:placeholder-gray-500 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                />
+            </div>
         </header>
         <div className="bg-white dark:bg-gray-800 shadow-lg rounded-lg overflow-hidden">
           <div className="overflow-x-auto">
-            {stock.length > 0 ? (
+            {filteredStock.length > 0 ? (
               <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                 <thead className="bg-gray-50 dark:bg-gray-700">
                   <tr>{['Material', 'Lote', 'Qtd', 'Prateleira', 'Rua', 'Sala', 'Status', 'SM', 'Ações'].map(header => (<th key={header} scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">{header}</th>))}</tr>
                 </thead>
                 <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                  {stock.map(item => (
+                  {filteredStock.map(item => (
                     <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{item.material}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{item.lote}</td>
@@ -180,8 +201,14 @@ export const FiberStockPage: React.FC = () => {
               </table>
             ) : (
               <div className="text-center py-16 px-6">
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white">Nenhum item no estoque</h3>
-                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Comece adicionando um novo item ou importando uma planilha.</p>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+                  {searchQuery ? 'Nenhum item encontrado' : 'Nenhum item no estoque'}
+                </h3>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                  {searchQuery
+                    ? `Sua busca por "${searchQuery}" não retornou resultados.`
+                    : 'Comece adicionando um novo item ou importando uma planilha.'}
+                </p>
                 <div className="mt-6">
                   <button onClick={handleAddClick} className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"><PlusIcon className="-ml-1 mr-2 h-5 w-5" />Adicionar Item</button>
                 </div>
