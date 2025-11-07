@@ -5,6 +5,7 @@ export enum Status {
 
 export interface Release {
   id: number;
+  displayId?: string;
   material: string;
   operador: string;
   rua: string;
@@ -21,6 +22,7 @@ export enum FiberStatus {
 
 export interface FiberStockItem {
   id: number;
+  displayId?: string;
   material: string;
   lote: string;
   qtd: string;

@@ -28,7 +28,34 @@ console.warn('Application is running in standalone mode using localStorage for d
                   savedRelease = { ...releaseData };
                   releases = releases.map(r => r.id === releaseData.id ? savedRelease : r);
                 } else {
-                  savedRelease = { ...releaseData, id: Date.now() };
+                  // Generate custom displayId
+                  const now = new Date();
+                  const currentMonth = now.getMonth() + 1;
+                  const currentYear = now.getFullYear();
+
+                  const releasesThisMonthAndYear = releases.filter(r => {
+                      if (!r.data) return false;
+                      const releaseDate = new Date(r.data + 'T00:00:00');
+                      return releaseDate.getMonth() + 1 === currentMonth && releaseDate.getFullYear() === currentYear;
+                  });
+
+                  const lastSequence = releasesThisMonthAndYear.reduce((max, r) => {
+                      if (r.displayId) {
+                          const parts = r.displayId.split('.');
+                          if (parts.length === 2) {
+                              const sequence = parseInt(parts[1], 10);
+                              if (!isNaN(sequence)) {
+                                  return Math.max(max, sequence);
+                              }
+                          }
+                      }
+                      return max;
+                  }, 0);
+                  
+                  const newSequence = lastSequence + 1;
+                  const displayId = `${currentMonth}.${newSequence}`;
+                  
+                  savedRelease = { ...releaseData, id: Date.now(), displayId };
                   releases.unshift(savedRelease);
                 }
                 localStorage.setItem('releases', JSON.stringify(releases));
@@ -63,7 +90,33 @@ console.warn('Application is running in standalone mode using localStorage for d
                   savedItem = { ...itemData };
                   stock = stock.map(s => s.id === itemData.id ? savedItem : s);
                 } else {
-                  savedItem = { ...itemData, id: Date.now() };
+                  const newId = Date.now();
+                  const creationDate = new Date(newId);
+                  const currentMonth = creationDate.getMonth() + 1;
+                  const currentYear = creationDate.getFullYear();
+
+                  const stockThisMonthAndYear = stock.filter(item => {
+                      const itemDate = new Date(item.id);
+                      return itemDate.getMonth() + 1 === currentMonth && itemDate.getFullYear() === currentYear;
+                  });
+                  
+                  const lastSequence = stockThisMonthAndYear.reduce((max, item) => {
+                      if (item.displayId) {
+                          const parts = item.displayId.split('.');
+                          if (parts.length === 2) {
+                              const sequence = parseInt(parts[1], 10);
+                              if (!isNaN(sequence)) {
+                                  return Math.max(max, sequence);
+                              }
+                          }
+                      }
+                      return max;
+                  }, 0);
+
+                  const newSequence = lastSequence + 1;
+                  const displayId = `${currentMonth}.${newSequence}`;
+                  
+                  savedItem = { ...itemData, id: newId, displayId };
                   stock.unshift(savedItem);
                 }
                 localStorage.setItem('fiberStock', JSON.stringify(stock));
