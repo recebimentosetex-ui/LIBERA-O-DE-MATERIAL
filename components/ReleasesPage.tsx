@@ -8,6 +8,12 @@ import { ReleaseForm } from './ReleaseForm';
 import { PlusIcon, EditIcon, DeleteIcon, ExportIcon, SearchIcon } from './icons';
 import { LoadingSpinner, ProcessingOverlay } from './common/Feedback';
 
+interface AdminLists {
+  operadores: string[];
+  ruas: string[];
+  locaisDeEntrega: string[];
+}
+
 const StatusBadge: React.FC<{ status: Status }> = ({ status }) => {
     const isPendente = status === Status.Pendente;
     const bgColor = isPendente ? 'bg-yellow-100 dark:bg-yellow-900' : 'bg-green-100 dark:bg-green-900';
@@ -16,7 +22,7 @@ const StatusBadge: React.FC<{ status: Status }> = ({ status }) => {
     return (<span className={`px-3 py-1 text-xs font-medium rounded-full ${bgColor} ${textColor}`}>{label}</span>);
 };
 
-export const ReleasesPage: React.FC = () => {
+export const ReleasesPage: React.FC<{ adminLists: AdminLists }> = ({ adminLists }) => {
     const [releases, setReleases] = useState<Release[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [isLoading, setIsLoading] = useState(true);
@@ -99,7 +105,15 @@ export const ReleasesPage: React.FC = () => {
     );
 
     if (isLoading) return <div className="p-8"><LoadingSpinner text="Carregando liberações..." /></div>;
-    if (view === 'form') return <ReleaseForm onSubmit={handleFormSubmit} onCancel={handleCancelForm} initialData={editingRelease} onDelete={handleFormDelete} />;
+    if (view === 'form') return <ReleaseForm
+      onSubmit={handleFormSubmit}
+      onCancel={handleCancelForm}
+      initialData={editingRelease}
+      onDelete={handleFormDelete}
+      operadores={adminLists.operadores}
+      ruas={adminLists.ruas}
+      locaisDeEntrega={adminLists.locaisDeEntrega}
+    />;
 
     return (
       <div className="container mx-auto p-4 sm:p-6 lg:p-8">

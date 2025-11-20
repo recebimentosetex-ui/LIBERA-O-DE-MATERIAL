@@ -10,6 +10,12 @@ import { LoadingSpinner, ProcessingOverlay } from './common/Feedback';
 
 declare const XLSX: any;
 
+interface AdminLists {
+  operadores: string[];
+  ruas: string[];
+  locaisDeEntrega: string[];
+}
+
 const FiberStatusBadge: React.FC<{ status: FiberStatus }> = ({ status }) => {
     const isEmEstoque = status === FiberStatus.EmEstoque;
     const bgColor = isEmEstoque ? 'bg-blue-100 dark:bg-blue-900' : 'bg-green-100 dark:bg-green-900';
@@ -18,7 +24,7 @@ const FiberStatusBadge: React.FC<{ status: FiberStatus }> = ({ status }) => {
     return (<span className={`px-3 py-1 text-xs font-medium rounded-full ${bgColor} ${textColor}`}>{label}</span>);
 };
 
-export const FiberStockPage: React.FC = () => {
+export const FiberStockPage: React.FC<{ adminLists: AdminLists }> = ({ adminLists }) => {
     const [stock, setStock] = useState<FiberStockItem[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [isLoading, setIsLoading] = useState(true);
@@ -140,7 +146,13 @@ export const FiberStockPage: React.FC = () => {
     );
 
     if (isLoading) return <div className="p-8"><LoadingSpinner text="Carregando estoque..." /></div>;
-    if (view === 'form') return <FiberStockForm onSubmit={handleFormSubmit} onCancel={handleCancelForm} initialData={editingItem} onDelete={handleFormDelete} />;
+    if (view === 'form') return <FiberStockForm 
+        onSubmit={handleFormSubmit} 
+        onCancel={handleCancelForm} 
+        initialData={editingItem} 
+        onDelete={handleFormDelete} 
+        ruas={adminLists.ruas} 
+    />;
 
     return (
       <div className="container mx-auto p-4 sm:p-6 lg:p-8">

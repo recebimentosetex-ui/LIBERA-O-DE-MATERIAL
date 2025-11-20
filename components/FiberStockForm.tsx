@@ -9,9 +9,10 @@ interface FiberStockFormProps {
   onCancel: () => void;
   initialData?: FiberStockItem | null;
   onDelete: (id: number) => void;
+  ruas: string[];
 }
 
-export const FiberStockForm: React.FC<FiberStockFormProps> = ({ onSubmit, onCancel, initialData, onDelete }) => {
+export const FiberStockForm: React.FC<FiberStockFormProps> = ({ onSubmit, onCancel, initialData, onDelete, ruas }) => {
   const [formData, setFormData] = useState({
     material: '', lote: '', qtd: '', prateleira: '', rua: '',
     sala: '', status: FiberStatus.EmEstoque, sm: '',
@@ -41,7 +42,7 @@ export const FiberStockForm: React.FC<FiberStockFormProps> = ({ onSubmit, onCanc
             <InputField label="Lote" id="lote" value={formData.lote} onChange={handleChange} required={false} />
             <InputField label="Quantidade" id="qtd" value={formData.qtd} onChange={handleChange} type="number" required={false} />
             <InputField label="Prateleira" id="prateleira" value={formData.prateleira} onChange={handleChange} required={false} />
-            <InputField label="Rua" id="rua" value={formData.rua} onChange={handleChange} required={false} />
+            <SelectField label="Rua" id="rua" value={formData.rua} onChange={handleChange} options={ruas} required={false} />
             <InputField label="Sala" id="sala" value={formData.sala} onChange={handleChange} required={false} />
             <SelectField label="Status" id="status" value={formData.status} onChange={handleChange} options={FIBER_STATUS_OPTIONS} required={false} />
             <InputField label="SM" id="sm" value={formData.sm} onChange={handleChange} required={false} />

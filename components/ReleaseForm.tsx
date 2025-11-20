@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Release, Status } from '../types';
-import { OPERADORES, RUAS, LOCAIS_DE_ENTREGA, STATUS_OPTIONS } from '../constants';
+import { STATUS_OPTIONS } from '../constants';
 import { InputField, SelectField } from './common/FormFields';
 import { DeleteIcon } from './icons';
 
@@ -9,9 +9,12 @@ interface ReleaseFormProps {
   onCancel: () => void;
   initialData?: Release | null;
   onDelete: (id: number) => void;
+  operadores: string[];
+  ruas: string[];
+  locaisDeEntrega: string[];
 }
 
-export const ReleaseForm: React.FC<ReleaseFormProps> = ({ onSubmit, onCancel, initialData, onDelete }) => {
+export const ReleaseForm: React.FC<ReleaseFormProps> = ({ onSubmit, onCancel, initialData, onDelete, operadores, ruas, locaisDeEntrega }) => {
   const [formData, setFormData] = useState({
     material: '', operador: '', rua: '', localDeEntrega: '',
     data: new Date().toISOString().split('T')[0], status: Status.Pendente, sm: '',
@@ -54,9 +57,9 @@ export const ReleaseForm: React.FC<ReleaseFormProps> = ({ onSubmit, onCancel, in
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <InputField label="Material" id="material" value={formData.material} onChange={handleChange} error={errors.material} />
-            <SelectField label="Operador" id="operador" value={formData.operador} onChange={handleChange} options={OPERADORES} error={errors.operador} />
-            <SelectField label="Rua" id="rua" value={formData.rua} onChange={handleChange} options={RUAS} error={errors.rua} />
-            <SelectField label="Local de Entrega" id="localDeEntrega" value={formData.localDeEntrega} onChange={handleChange} options={LOCAIS_DE_ENTREGA} error={errors.localDeEntrega} />
+            <SelectField label="Operador" id="operador" value={formData.operador} onChange={handleChange} options={operadores} error={errors.operador} />
+            <SelectField label="Rua" id="rua" value={formData.rua} onChange={handleChange} options={ruas} error={errors.rua} />
+            <SelectField label="Local de Entrega" id="localDeEntrega" value={formData.localDeEntrega} onChange={handleChange} options={locaisDeEntrega} error={errors.localDeEntrega} />
             <InputField label="Data" id="data" value={formData.data} onChange={handleChange} error={errors.data} type="date" />
             <SelectField label="Status" id="status" value={formData.status} onChange={handleChange} options={STATUS_OPTIONS} error={errors.status} />
             <div className="md:col-span-2">
