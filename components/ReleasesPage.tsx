@@ -1,12 +1,10 @@
-// Fix: Declare google as a global variable to resolve TypeScript errors.
-declare const google: any;
-
 import React, { useState, useEffect } from 'react';
 import { Release, Status } from '../types';
 import { exportReleasesToExcel } from '../services/exportService';
 import { ReleaseForm } from './ReleaseForm';
 import { PlusIcon, EditIcon, DeleteIcon, ExportIcon, SearchIcon } from './icons';
 import { LoadingSpinner, ProcessingOverlay } from './common/Feedback';
+import { dataService } from '../services/dataService';
 
 interface AdminLists {
   operadores: string[];
@@ -32,38 +30,35 @@ export const ReleasesPage: React.FC<{ adminLists: AdminLists }> = ({ adminLists 
     const [editingRelease, setEditingRelease] = useState<Release | null>(null);
 
     useEffect(() => {
-      google.script.run
-        .withSuccessHandler(data => {
+      dataService.getReleases()
+        .then((data: any) => {
           setReleases(data);
           setIsLoading(false);
         })
-        .withFailureHandler(err => {
+        .catch(err => {
             console.error(err);
-            alert("Falha ao carregar os dados. Verifique o console para mais detalhes.");
+            alert("Falha ao carregar os dados. Verifique a conexão com o Supabase.");
             setIsLoading(false);
-        })
-        .getReleases();
+        });
     }, []);
 
     const handleAddClick = () => { setEditingRelease(null); setView('form'); };
     const handleEditClick = (release: Release) => { setEditingRelease(release); setView('form'); };
     
-    const handleDeleteClick = (id: number, onSuccessCallback?: () => void) => {
+    const handleDeleteClick = async (id: number, onSuccessCallback?: () => void) => {
       if (window.confirm('Tem certeza que deseja excluir esta liberação?')) {
         setProcessingText('Excluindo liberação...');
         setIsSubmitting(true);
-        google.script.run
-            .withSuccessHandler(() => {
-                setReleases(prevReleases => prevReleases.filter(r => r.id !== id));
-                setIsSubmitting(false);
-                if (onSuccessCallback) onSuccessCallback();
-            })
-            .withFailureHandler(err => {
-                console.error(err);
-                alert("Falha ao excluir a liberação.");
-                setIsSubmitting(false);
-            })
-            .deleteRelease(id);
+        try {
+            await dataService.deleteRelease(id);
+            setReleases(prevReleases => prevReleases.filter(r => r.id !== id));
+            setIsSubmitting(false);
+            if (onSuccessCallback) onSuccessCallback();
+        } catch (err) {
+            console.error(err);
+            alert("Falha ao excluir a liberação.");
+            setIsSubmitting(false);
+        }
       }
     };
 
@@ -74,25 +69,23 @@ export const ReleasesPage: React.FC<{ adminLists: AdminLists }> = ({ adminLists 
         });
     };
 
-    const handleFormSubmit = (releaseData: Release | Omit<Release, 'id'>) => {
+    const handleFormSubmit = async (releaseData: Release | Omit<Release, 'id'>) => {
       setProcessingText('Salvando liberação...');
       setIsSubmitting(true);
-      google.script.run
-        .withSuccessHandler((savedRelease: Release) => {
-          if ('id' in releaseData) {
+      try {
+        const savedRelease = await dataService.saveRelease(releaseData);
+        if ('id' in releaseData) {
             setReleases(prev => prev.map(r => r.id === savedRelease.id ? savedRelease : r));
-          } else {
+        } else {
             setReleases(prev => [savedRelease, ...prev]);
-          }
-          setView('list');
-          setIsSubmitting(false);
-        })
-        .withFailureHandler(err => {
-            console.error(err);
-            alert("Falha ao salvar a liberação.");
-            setIsSubmitting(false);
-        })
-        .saveRelease(releaseData);
+        }
+        setView('list');
+      } catch (err) {
+        console.error(err);
+        alert("Falha ao salvar a liberação.");
+      } finally {
+        setIsSubmitting(false);
+      }
     };
 
     const handleCancelForm = () => { setView('list'); setEditingRelease(null); };

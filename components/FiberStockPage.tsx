@@ -1,12 +1,10 @@
-// Fix: Declare google as a global variable to resolve TypeScript errors.
-declare const google: any;
-
 import React, { useState, useEffect, useRef } from 'react';
 import { FiberStockItem, FiberStatus } from '../types';
 import { exportFiberStockToExcel } from '../services/exportService';
 import { FiberStockForm } from './FiberStockForm';
 import { PlusIcon, EditIcon, DeleteIcon, ExportIcon, ImportIcon, SearchIcon } from './icons';
 import { LoadingSpinner, ProcessingOverlay } from './common/Feedback';
+import { dataService } from '../services/dataService';
 
 declare const XLSX: any;
 
@@ -35,38 +33,35 @@ export const FiberStockPage: React.FC<{ adminLists: AdminLists }> = ({ adminList
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
-        google.script.run
-            .withSuccessHandler(data => {
+        dataService.getFiberStock()
+            .then((data: any) => {
                 setStock(data);
                 setIsLoading(false);
             })
-            .withFailureHandler(err => {
+            .catch(err => {
                 console.error(err);
-                alert("Falha ao carregar dados do estoque. Verifique o console.");
+                alert("Falha ao carregar dados do estoque.");
                 setIsLoading(false);
-            })
-            .getFiberStock();
+            });
     }, []);
 
     const handleAddClick = () => { setEditingItem(null); setView('form'); };
     const handleEditClick = (item: FiberStockItem) => { setEditingItem(item); setView('form'); };
     
-    const handleDeleteClick = (id: number, onSuccessCallback?: () => void) => {
+    const handleDeleteClick = async (id: number, onSuccessCallback?: () => void) => {
       if (window.confirm('Tem certeza que deseja excluir este item do estoque?')) {
         setProcessingText('Excluindo item...');
         setIsSubmitting(true);
-        google.script.run
-          .withSuccessHandler(() => {
+        try {
+            await dataService.deleteFiberStock(id);
             setStock(prevStock => prevStock.filter(item => item.id !== id));
             setIsSubmitting(false);
             if (onSuccessCallback) onSuccessCallback();
-          })
-          .withFailureHandler(err => {
+        } catch (err) {
             console.error(err);
             alert("Falha ao excluir o item.");
             setIsSubmitting(false);
-          })
-          .deleteFiberStock(id);
+        }
       }
     };
     
@@ -77,25 +72,23 @@ export const FiberStockPage: React.FC<{ adminLists: AdminLists }> = ({ adminList
         });
     };
 
-    const handleFormSubmit = (itemData: FiberStockItem | Omit<FiberStockItem, 'id'>) => {
+    const handleFormSubmit = async (itemData: FiberStockItem | Omit<FiberStockItem, 'id'>) => {
       setProcessingText('Salvando item...');
       setIsSubmitting(true);
-      google.script.run
-        .withSuccessHandler((savedItem: FiberStockItem) => {
-          if ('id' in itemData) {
+      try {
+        const savedItem = await dataService.saveFiberStock(itemData);
+        if ('id' in itemData) {
             setStock(prev => prev.map(s => s.id === savedItem.id ? savedItem : s));
-          } else {
+        } else {
             setStock(prev => [savedItem, ...prev]);
-          }
-          setView('list');
-          setIsSubmitting(false);
-        })
-        .withFailureHandler(err => {
-          console.error(err);
-          alert("Falha ao salvar o item.");
-          setIsSubmitting(false);
-        })
-        .saveFiberStock(itemData);
+        }
+        setView('list');
+      } catch (err) {
+        console.error(err);
+        alert("Falha ao salvar o item.");
+      } finally {
+        setIsSubmitting(false);
+      }
     };
     
     const handleImportClick = () => { fileInputRef.current?.click(); };
@@ -106,7 +99,7 @@ export const FiberStockPage: React.FC<{ adminLists: AdminLists }> = ({ adminList
         setProcessingText('Importando arquivo...');
         setIsSubmitting(true);
         const reader = new FileReader();
-        reader.onload = (e) => {
+        reader.onload = async (e) => {
             const data = e.target?.result;
             const workbook = XLSX.read(data, { type: 'array' });
             const sheetName = workbook.SheetNames[0];
@@ -119,18 +112,19 @@ export const FiberStockPage: React.FC<{ adminLists: AdminLists }> = ({ adminList
                 json.shift();
             }
 
-            google.script.run
-                .withSuccessHandler((updatedStock) => {
-                    setStock(updatedStock);
-                    setIsSubmitting(false);
-                    alert(`${json.length} itens importados com sucesso!`);
-                })
-                .withFailureHandler(err => {
-                    console.error(err);
-                    alert("Falha ao importar o arquivo.");
-                    setIsSubmitting(false);
-                })
-                .importFiberStock(json);
+            try {
+                const updatedStock = await dataService.importFiberStock(json);
+                // O importFiberStock retorna os itens inseridos.
+                // Como pode haver muitos itens, melhor recarregar tudo ou adicionar os novos.
+                // Aqui vamos concatenar os novos.
+                setStock(prev => [...updatedStock, ...prev]); 
+                alert(`${json.length} itens importados com sucesso!`);
+            } catch (err) {
+                console.error(err);
+                alert("Falha ao importar o arquivo.");
+            } finally {
+                setIsSubmitting(false);
+            }
         };
         reader.readAsArrayBuffer(file);
         event.target.value = '';

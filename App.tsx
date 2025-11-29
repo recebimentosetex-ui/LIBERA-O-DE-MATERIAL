@@ -5,9 +5,7 @@ import { AdminPage } from './components/AdminPage';
 import { AdminLoginPage } from './components/AdminLoginPage';
 import { LoadingSpinner } from './components/common/Feedback';
 import { HomePage } from './components/HomePage';
-
-// Fix: Declare google as a global variable to resolve TypeScript errors.
-declare const google: any;
+import { dataService } from './services/dataService';
 
 interface AdminLists {
   operadores: string[];
@@ -22,32 +20,31 @@ const App: React.FC = () => {
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
 
   useEffect(() => {
-    google.script.run
-      .withSuccessHandler((data: AdminLists) => {
+    // Carregar configurações do Supabase
+    dataService.getAdminLists()
+      .then((data: AdminLists) => {
         setAdminLists(data);
         setIsLoading(false);
       })
-      .withFailureHandler((err: Error) => {
+      .catch((err: any) => {
         console.error('Failed to load admin lists', err);
-        alert('Falha ao carregar dados de configuração.');
+        // Fallback se não tiver nada no banco ainda
+        const defaultLists = {
+            operadores: [], ruas: [], locaisDeEntrega: []
+        };
+        setAdminLists(defaultLists);
         setIsLoading(false);
-      })
-      .getAdminLists();
+      });
   }, []);
 
-  const handleSaveAdminLists = (lists: AdminLists): Promise<void> => {
-    return new Promise((resolve, reject) => {
-      google.script.run
-        .withSuccessHandler((savedLists: AdminLists) => {
-          setAdminLists(savedLists);
-          resolve();
-        })
-        .withFailureHandler((err: Error) => {
-          console.error('Failed to save admin lists', err);
-          reject(err);
-        })
-        .saveAdminLists(lists);
-    });
+  const handleSaveAdminLists = async (lists: AdminLists): Promise<void> => {
+    try {
+      const savedLists = await dataService.saveAdminLists(lists);
+      setAdminLists(savedLists);
+    } catch (err) {
+      console.error('Failed to save admin lists', err);
+      throw err;
+    }
   };
   
   const navigateTo = (page: string) => {
@@ -56,7 +53,7 @@ const App: React.FC = () => {
 
   const renderPage = () => {
     if (isLoading || !adminLists) {
-      return <div className="p-8"><LoadingSpinner text="Carregando configurações..." /></div>;
+      return <div className="p-8"><LoadingSpinner text="Conectando ao banco de dados..." /></div>;
     }
     switch(currentPage) {
       case 'home':
